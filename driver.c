@@ -8,6 +8,7 @@
 #include "gslx680_1.h"
 #include "gslx680_2.h"
 #include "gslx680_3.h"
+#include "gt811.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -239,7 +240,7 @@ static u32 gsl_write_interface(struct i2c_client *client, const u8 reg, u8 *buf,
 	datos.msgs=xfer_msg;
 	datos.nmsgs=ARRAY_SIZE(xfer_msg);
 
-	return ioctl(client->adapter, I2C_RDWR, datos) == 1 ? 0 : -EFAULT;
+	return (ioctl(client->adapter, I2C_RDWR, datos) == 1) ? 0 : -EFAULT;
 }
 
 static int gsl_ts_write(struct i2c_client *client, u8 addr, u8 *pdata, int datalen) {
@@ -309,6 +310,50 @@ static void reset_chip(struct i2c_client *client) {
 
 }
 
+static void gsl_load_fw2(struct i2c_client *client) {
+
+	u32 source_len;
+	u32 source_line;
+	u8  source_data;
+	u8  buf[6];
+	
+	switch(fw) {
+	case 7:
+		source_data=firm_1;
+		source_len=ARRAY_SIZE(firm_1);
+	break;
+	case 8:
+		source_data=firm_2;
+		source_len=ARRAY_SIZE(firm_2);
+	break;
+	case 9:
+		source_data=firm_3;
+		source_len=ARRAY_SIZE(firm_3);
+	break;
+
+	printf("=============gsl_load_fw start 2==============\n");
+
+	
+	buf[0]=GSL_PAGE_REG;
+	buf[1]=0x00;
+	buf[2]=0x00;
+	buf[3]=0x00;
+	buf[4]=0x00;
+	retval=gsl_ts_write(client, buf[0], buf+1, 4);
+	for (source_line = 0; source_line < source_len; source_line++) 	{
+		buf[2]=source_data[source_line];
+		retval=gsl_ts_write(client, buf[1], buf+2, 1);
+		if(retval!=2) {
+			errno=retval;
+			perror("Error al enviar datos 2\n");
+		}
+	}
+
+	printf("=============gsl_load_fw end 2==============\n");
+
+
+}
+
 static void gsl_load_fw(struct i2c_client *client) {
 
 	u8 buf[DMA_TRANS_LEN*4 + 1] = {0};
@@ -316,6 +361,12 @@ static void gsl_load_fw(struct i2c_client *client) {
 	u8 *cur = buf + 1;
 	u32 source_line = 0;
 	u32 source_len;
+	int retval;
+
+	if (fw>6) {
+		gsl_load_fw2(client);
+		return;
+	}
 
 	static const struct fw_data *local_GSLX680_FW;
 	
@@ -348,6 +399,9 @@ static void gsl_load_fw(struct i2c_client *client) {
 		local_GSLX680_FW=GSL1680E2_FW;
 		source_len = ARRAY_SIZE(GSL1680E2_FW);
 	break;
+	default:
+		return;
+	break;
 	}
 
 	printf("=============gsl_load_fw start==============\n");
@@ -355,21 +409,15 @@ static void gsl_load_fw(struct i2c_client *client) {
 	for (source_line = 0; source_line < source_len; source_line++) 	{
 		/* init page trans, set the page val */
 		if (GSL_PAGE_REG == local_GSLX680_FW[source_line].offset) {
-			fw2buf(cur, &local_GSLX680_FW[source_line].val);
-			gsl_write_interface(client, GSL_PAGE_REG, buf, 4);
-			send_flag = 1;
+			fw2buf(buf, &local_GSLX680_FW[source_line].val);
+			gsl_ts_write(client, GSL_PAGE_REG, buf, 4);
 		} else {
-			if (1 == send_flag % (DMA_TRANS_LEN < 0x20 ? DMA_TRANS_LEN : 0x20)) {
-	    		buf[0] = (u8)local_GSLX680_FW[source_line].offset;
-			}
-			fw2buf(cur, &local_GSLX680_FW[source_line].val);
-			cur += 4;
-
-			if (0 == send_flag % (DMA_TRANS_LEN < 0x20 ? DMA_TRANS_LEN : 0x20)) {
-	    			gsl_write_interface(client, buf[0], buf, cur - buf - 1);
-	    			cur = buf + 1;
-			}
-			send_flag++;
+			fw2buf(buf+1, &local_GSLX680_FW[source_line].val);
+   			retval=gsl_ts_write(client, buf[0], buf+1, 4);
+   			if(retval!=5) {
+   				errno=retval;
+   				perror("Error al enviar datos\n");
+   			}
 		}
 	}
 
