@@ -924,7 +924,7 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	printk( "gsl_ts_probe () : add gsl_timer\n");
 
 	init_timer(&ts->gsl_timer);
-	ts->gsl_timer.expires = jiffies + 3 * HZ;	//¶¨Ê±3  ÃëÖÓ
+	ts->gsl_timer.expires = jiffies + 3 * HZ;
 	ts->gsl_timer.function = &gsl_timer_handle;
 	ts->gsl_timer.data = (unsigned long)ts;
 	add_timer(&ts->gsl_timer);

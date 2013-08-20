@@ -1,13 +1,6 @@
-#ifndef _GSLX680_H_
-#define _GSLX680_H_
+#ifndef _GSLX680_2_H_
+#define _GSLX680_2_H_
 
-
-struct fw_data
-{
-    u32 offset : 8;
-    u32 : 0;
-    u32 val;
-};
 
 static const struct fw_data GSL1680_FW[] = {
 //GSL1680_2013.1.26_INET
@@ -4402,7 +4395,6 @@ static const struct fw_data GSL1680_FW[] = {
 {0x7c,0xffffff16},
 };
 
-/*
 static const struct fw_data GSL1680_1_FW[] = {
 //GSL1680_V1.3.3.1_2012.12.02_MID_COMMON
 //conf
@@ -8533,7 +8525,7 @@ static const struct fw_data GSL1680_1_FW[] = {
 {0x78,0xffffffd2},
 {0x7c,0xffffff16},
 };
-*/
+
 static const struct fw_data GSL2680_FW[] = {
 //GSL2680_V1.3.1.3_2012.12.02_MID_COMMON
 {0xf0,0x0},
