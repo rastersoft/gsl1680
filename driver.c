@@ -314,8 +314,9 @@ static void gsl_load_fw2(struct i2c_client *client) {
 
 	u32 source_len;
 	u32 source_line;
-	u8  source_data;
+	u8 *source_data;
 	u8  buf[6];
+	int retval;
 	
 	switch(fw) {
 	case 7:
@@ -330,6 +331,10 @@ static void gsl_load_fw2(struct i2c_client *client) {
 		source_data=firm_3;
 		source_len=ARRAY_SIZE(firm_3);
 	break;
+	default:
+		return;
+	break;
+	}
 
 	printf("=============gsl_load_fw start 2==============\n");
 
@@ -399,9 +404,6 @@ static void gsl_load_fw(struct i2c_client *client) {
 		local_GSLX680_FW=GSL1680E2_FW;
 		source_len = ARRAY_SIZE(GSL1680E2_FW);
 	break;
-	default:
-		return;
-	break;
 	}
 
 	printf("=============gsl_load_fw start==============\n");
@@ -412,6 +414,7 @@ static void gsl_load_fw(struct i2c_client *client) {
 			fw2buf(buf, &local_GSLX680_FW[source_line].val);
 			gsl_ts_write(client, GSL_PAGE_REG, buf, 4);
 		} else {
+			buf[0] = (u8)local_GSLX680_FW[source_line].offset;
 			fw2buf(buf+1, &local_GSLX680_FW[source_line].val);
    			retval=gsl_ts_write(client, buf[0], buf+1, 4);
    			if(retval!=5) {
