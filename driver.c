@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <linux/input.h>
+#include <linux/uinput.h>
 
 #include "driver.h"
 
@@ -18,10 +20,11 @@
 
 char *fw_file;
 
+struct input_event ev;
+
 struct i2c_client {
-	int addr;
 	int adapter;
-	int flags;
+	int ufile;
 };
 
 
@@ -198,13 +201,38 @@ void read_coords(struct i2c_client *cliente) {
 	y=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]));
 	vx=(x>>12)&0x000F;
 	vy=(y>>12)&0x000F;
-	printf("Pulsacion en %dx%d, vx %d, vy %d (%d pulsaciones)\r",x&0x0FFF,y&0x0FFF,vx,vy,total);
+	x&=0x0FFF;
+	y&=0x0FFF;
+
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_ABS;
+	ev.code = ABS_X;
+	ev.value = x;
+	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_ABS;
+	ev.code = ABS_Y;
+	ev.value = y;
+	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_SYN;
+	ev.code = 0;
+	ev.value = 0;
+	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+
 }
 
 
 int main(int argc, char **argv) {
 
 	struct i2c_client cliente;
+	int ufile;
+	int retval;
 	
 	if (argc!=3) {
 		printf("Format: driver DEVICE FW_FILE\n");
@@ -221,21 +249,58 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	cliente.addr=GSLX680_I2C_ADDR;
-
 	system("echo 0 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
-	sleep(1);
+	usleep(100000);
 	system("echo 1 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
 
 	if (ioctl(cliente.adapter, I2C_SLAVE, GSLX680_I2C_ADDR) < 0) {
-		/* ERROR HANDLING; you can check errno to see what went wrong */
 		printf("Error selecting device %d\n",GSLX680_I2C_ADDR);
 		return -2;
 	}
 
 	init_chip(&cliente);
 
+	ufile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+	if (ufile<0) {
+		ufile=open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
+		if (ufile<0) {
+			printf("Can't connect to UINPUT interface.\n");
+			return -2;
+		}
+	}
+	
+	
+	retval = ioctl(ufile, UI_SET_EVBIT, EV_KEY);
+	retval = ioctl(ufile, UI_SET_KEYBIT, BTN_LEFT);
+	retval = ioctl(ufile, UI_SET_EVBIT, EV_ABS);
+	
+	// allow to send absolute coordinates
+	retval = ioctl(ufile, UI_SET_ABSBIT, ABS_X);
+	retval = ioctl(ufile, UI_SET_ABSBIT, ABS_Y);
+	
+	struct uinput_user_dev uidev;
+
+	memset(&uidev, 0, sizeof(uidev));
+
+	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "gsl1680-uinput");
+	uidev.id.bustype = BUS_I2C;
+	uidev.id.vendor  = 0x1;
+	uidev.id.product = 0x1;
+	uidev.id.version = 1;
+	uidev.absmin[ABS_X] = 0;
+	uidev.absmax[ABS_X] = 799;
+	uidev.absmin[ABS_Y] = 0;
+	uidev.absmax[ABS_Y] = 479;
+	retval = write(ufile, &uidev, sizeof(uidev));
+	
+	retval = ioctl(ufile, UI_DEV_CREATE);
+
+	cliente.ufile=ufile;
+
+	sleep(2);
 	while(1) {
 		read_coords(&cliente);
+		usleep(15000);
 	}
 }
+
