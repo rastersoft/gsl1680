@@ -18,10 +18,6 @@
 #define GSL_STATUS_REG		0xe0
 #define GSL_PAGE_REG		0xf0
 
-char *fw_file;
-
-struct input_event ev;
-
 struct i2c_client {
 	int adapter;
 	int ufile;
@@ -110,7 +106,7 @@ static void reset_chip(struct i2c_client *client) {
 
 }
 
-static void gsl_load_fw(struct i2c_client *client) {
+static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 
 	u8 buf[9] = {0};
 	u32 source_line = 0;
@@ -157,10 +153,10 @@ static void startup_chip(struct i2c_client *client) {
 	usleep(10000);	
 }
 
-static void init_chip(struct i2c_client *client) {
+static void init_chip(struct i2c_client *client,char *fw_file) {
 
 	reset_chip(client);
-	gsl_load_fw(client);
+	gsl_load_fw(client,fw_file);
 	startup_chip(client);
 	reset_chip(client);
 	gslX680_shutdown_low();	
@@ -182,6 +178,9 @@ void read_coords(struct i2c_client *cliente) {
 	int retval;
 	unsigned int x,y,total;
 	unsigned int vx,vy;
+	struct input_event ev;
+
+	static char pressed=0;
 
 	retval=gsl_ts_read(cliente, GSL_DATA_REG, buffer, 1);
 	if (retval<=0) {
@@ -189,7 +188,23 @@ void read_coords(struct i2c_client *cliente) {
 		return;
 	}
 	
-	if (buffer[0]==0) {
+	if (buffer[0]==0) { // no touch
+		if(pressed==1) {
+			pressed=0;
+			memset(&ev, 0, sizeof(struct input_event));
+
+			ev.type = EV_KEY;
+			ev.code = BTN_LEFT;
+			ev.value = 0; // Release event
+			retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+
+			memset(&ev, 0, sizeof(struct input_event));
+
+			ev.type = EV_SYN;
+			ev.code = 0;
+			ev.value = 0;
+			retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+		}
 		return;
 	}
 	
@@ -225,6 +240,22 @@ void read_coords(struct i2c_client *cliente) {
 	ev.value = 0;
 	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
 
+	if(pressed==0) {
+		pressed=1;
+		memset(&ev, 0, sizeof(struct input_event));
+
+		ev.type = EV_KEY;
+		ev.code = BTN_LEFT;
+		ev.value = 1; // press event
+		retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+
+		memset(&ev, 0, sizeof(struct input_event));
+
+		ev.type = EV_SYN;
+		ev.code = 0;
+		ev.value = 0;
+		retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+	}
 }
 
 
@@ -238,10 +269,8 @@ int main(int argc, char **argv) {
 		printf("Format: driver DEVICE FW_FILE\n");
 		return 0;
 	}
-
-	fw_file=argv[2]; // firmware file
 	
-	printf("Connecting to device %s, firmware %s\n",argv[1],fw_file);
+	printf("Connecting to device %s, firmware %s\n",argv[1],argv[2]);
 	
 	cliente.adapter=open(argv[1],O_RDWR);
 	if (cliente.adapter<0) {
@@ -258,7 +287,7 @@ int main(int argc, char **argv) {
 		return -2;
 	}
 
-	init_chip(&cliente);
+	init_chip(&cliente,argv[2]);
 
 	ufile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 	if (ufile<0) {
