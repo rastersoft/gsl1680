@@ -12,12 +12,6 @@
 
 #include "driver.h"
 
-#define GSLX680_I2C_ADDR 	0x40
-
-#define GSL_DATA_REG		0x80
-#define GSL_STATUS_REG		0xe0
-#define GSL_PAGE_REG		0xf0
-
 struct i2c_client {
 	int adapter;
 	int ufile;
@@ -317,9 +311,9 @@ int main(int argc, char **argv) {
 	uidev.id.product = 0x1;
 	uidev.id.version = 1;
 	uidev.absmin[ABS_X] = 0;
-	uidev.absmax[ABS_X] = 799;
+	uidev.absmax[ABS_X] = SCREEN_MAX_X-1;
 	uidev.absmin[ABS_Y] = 0;
-	uidev.absmax[ABS_Y] = 479;
+	uidev.absmax[ABS_Y] = SCREEN_MAX_Y-1;
 	retval = write(ufile, &uidev, sizeof(uidev));
 	
 	retval = ioctl(ufile, UI_DEV_CREATE);
