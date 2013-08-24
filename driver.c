@@ -281,8 +281,6 @@ int main(int argc, char **argv) {
 		return -2;
 	}
 
-	init_chip(&cliente,argv[2]);
-
 	ufile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 	if (ufile<0) {
 		ufile=open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
@@ -320,7 +318,8 @@ int main(int argc, char **argv) {
 
 	cliente.ufile=ufile;
 
-	sleep(2);
+	init_chip(&cliente,argv[2]);
+
 	while(1) {
 		read_coords(&cliente);
 		usleep(15000);
