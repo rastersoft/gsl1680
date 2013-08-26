@@ -211,6 +211,19 @@ void click(struct i2c_client *cliente,int press) {
 	do_sync(cliente,cliente->ufile);
 }
 
+void click_r(struct i2c_client *cliente,int press) {
+
+	struct input_event ev;
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_KEY;
+	ev.code = BTN_RIGHT;
+	ev.value = press;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+
+	do_sync(cliente,cliente->mfile);
+}
+
 void scroll(struct i2c_client *cliente,int value) {
 
 	struct input_event ev;
@@ -323,7 +336,7 @@ void read_coords(struct i2c_client *cliente) {
 			old_y=ym;
 			old_dist=dist;
 			move_to(cliente,old_x,old_y);
-			cstatus=RS_two;
+			cstatus=RS_two_A;
 			return;
 		}
 	break;
@@ -333,7 +346,7 @@ void read_coords(struct i2c_client *cliente) {
 			old_y=ym;
 			old_dist=dist;
 			move_to(cliente,old_x,old_y);
-			cstatus=RS_two;
+			cstatus=RS_two_A;
 			return;
 		}
 		if (touches==0) {
@@ -369,16 +382,26 @@ void read_coords(struct i2c_client *cliente) {
 			return;
 		}
 	break;
-	case RS_two:
+	case RS_two_A:
+		if (touches==1) {
+			old_x=x1;
+			old_y=y1;
+			move_to(cliente,old_x,old_y);
+			cstatus=RS_right_A;
+			return;
+		}
+	case RS_two_B:
 		if (touches==2) {
 			int d;
 			d=(xm-old_x)/X_THRESHOLD;
 			if (d!=0) {
+				cstatus=RS_two_B;
 				scrollh(cliente,d);
 				old_x=xm;
 			}
 			d=(ym-old_y)/Y_THRESHOLD;
 			if (d!=0) {
+				cstatus=RS_two_B;
 				scroll(cliente,d);
 				old_y=ym;
 			}
@@ -390,12 +413,44 @@ void read_coords(struct i2c_client *cliente) {
 					zoom(cliente,-((int)(sqrt(-d))));
 				}
 				old_dist=dist;
+				cstatus=RS_two_B;
 			}
 		}
 		if (touches==0) {
 			cstatus=RS_idle;
 		}
 	break;
+	case RS_right_A:
+		if (touches==0) {
+			cstatus=RS_idle;
+			return;
+		}
+		if ((x1!=old_x)||(y1!=old_y)) {
+			old_x=x1;
+			old_y=y1;
+			move_to(cliente,old_x,old_y);
+		}
+		if (touches==2) {
+			click_r(cliente,1);
+			cstatus=RS_right_B;
+			return;
+		}
+	break;
+	case RS_right_B:
+		if (touches==0) {
+			cstatus=RS_idle;
+			return;
+		}
+		if ((x1!=old_x)||(y1!=old_y)) {
+			old_x=x1;
+			old_y=y1;
+			move_to(cliente,old_x,old_y);
+		}
+		if (touches==1) {
+			click_r(cliente,0);
+			cstatus=RS_right_A;
+			return;
+		}
 	}
 }
 

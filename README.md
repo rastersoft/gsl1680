@@ -3,7 +3,7 @@ gsl1680
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
-This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), and zoom in/zoom out (pinching with two fingers).
+This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), zoom in/zoom out (pinching with two fingers), and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1).
 
 ## How to use the driver ##
 
