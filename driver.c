@@ -393,7 +393,7 @@ void read_coords(struct i2c_client *cliente) {
 	case RS_two_B:
 		if (touches==2) {
 			int d;
-			d=(xm-old_x)/X_THRESHOLD;
+			d=(old_x-xm)/X_THRESHOLD;
 			if (d!=0) {
 				cstatus=RS_two_B;
 				scrollh(cliente,d);
