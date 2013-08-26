@@ -470,6 +470,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	/* When a device uses ABSolute pointing, the X server doesn't allows to also use RELative pointing.
+	 * But we need it to allow scrolling and zooming, so we define another device, this time with only
+	 * relative pointing.
+	 * It also can emit the LEFT CONTROL key to emulate zoom in and zoom out (CTRL+vertical scroll)
+	 */
+
 	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_KEY);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_LEFT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_RIGHT);

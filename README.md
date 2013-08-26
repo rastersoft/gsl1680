@@ -3,6 +3,8 @@ gsl1680
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
+This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), and zoom in/zoom out (pinching with two fingers).
+
 ## How to use the driver ##
 
 This is a little program that runs in user space, but makes use of the UFILE driver to link itself to the INPUT subsystem, allowing it to work like any other input driver. So it is mandatory to have a kernel with UFILE support (Device Drivers -> Input devices support -> Miscellaneous devices -> User level driver support).
