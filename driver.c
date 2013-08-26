@@ -9,12 +9,14 @@
 #include <stdlib.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <math.h>
 
 #include "driver.h"
 
 struct i2c_client {
 	int adapter;
 	int ufile;
+	int mfile;
 };
 
 
@@ -165,90 +167,235 @@ static void init_chip(struct i2c_client *client,char *fw_file) {
 	startup_chip(client);	
 }
 
+void do_sync(struct i2c_client *cliente,int file) {
 
-void read_coords(struct i2c_client *cliente) {
-
-	u8 buffer[10];
-	int retval;
-	unsigned int x,y,total;
-	unsigned int vx,vy;
 	struct input_event ev;
-
-	static char pressed=0;
-
-	retval=gsl_ts_read(cliente, GSL_DATA_REG, buffer, 1);
-	if (retval<=0) {
-		printf("error leyendo coordenadas %d\n",retval);
-		return;
-	}
-	
-	if (buffer[0]==0) { // no touch
-		if(pressed==1) {
-			pressed=0;
-			memset(&ev, 0, sizeof(struct input_event));
-
-			ev.type = EV_KEY;
-			ev.code = BTN_LEFT;
-			ev.value = 0; // Release event
-			retval=write(cliente->ufile, &ev, sizeof(struct input_event));
-
-			memset(&ev, 0, sizeof(struct input_event));
-
-			ev.type = EV_SYN;
-			ev.code = 0;
-			ev.value = 0;
-			retval=write(cliente->ufile, &ev, sizeof(struct input_event));
-		}
-		return;
-	}
-	
-	total=buffer[0];
-	
-	retval=gsl_ts_read(cliente,0x84,buffer,4);
-	
-	x=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]));
-	y=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]));
-	vx=(x>>12)&0x000F;
-	vy=(y>>12)&0x000F;
-	x&=0x0FFF;
-	y&=0x0FFF;
-
-	memset(&ev, 0, sizeof(struct input_event));
-
-	ev.type = EV_ABS;
-	ev.code = ABS_X;
-	ev.value = x;
-	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
-
-	memset(&ev, 0, sizeof(struct input_event));
-
-	ev.type = EV_ABS;
-	ev.code = ABS_Y;
-	ev.value = y;
-	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
-
 	memset(&ev, 0, sizeof(struct input_event));
 
 	ev.type = EV_SYN;
 	ev.code = 0;
 	ev.value = 0;
-	retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+	write(file, &ev, sizeof(struct input_event));
 
-	if(pressed==0) {
-		pressed=1;
-		memset(&ev, 0, sizeof(struct input_event));
+}
 
-		ev.type = EV_KEY;
-		ev.code = BTN_LEFT;
-		ev.value = 1; // press event
-		retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+void move_to(struct i2c_client *cliente,int x, int y) {
 
-		memset(&ev, 0, sizeof(struct input_event));
+	struct input_event ev;
 
-		ev.type = EV_SYN;
-		ev.code = 0;
-		ev.value = 0;
-		retval=write(cliente->ufile, &ev, sizeof(struct input_event));
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_ABS;
+	ev.code = ABS_X;
+	ev.value = x;
+	write(cliente->ufile, &ev, sizeof(struct input_event));
+		
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_ABS;
+	ev.code = ABS_Y;
+	ev.value = y;
+	write(cliente->ufile, &ev, sizeof(struct input_event));
+
+	do_sync(cliente,cliente->ufile);
+}
+
+void click(struct i2c_client *cliente,int press) {
+
+	struct input_event ev;
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_KEY;
+	ev.code = BTN_TOUCH;
+	ev.value = press;
+	write(cliente->ufile, &ev, sizeof(struct input_event));
+
+	do_sync(cliente,cliente->ufile);
+}
+
+void scroll(struct i2c_client *cliente,int value) {
+
+	struct input_event ev;
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_REL;
+	ev.code = REL_WHEEL;
+	ev.value = value;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+
+	do_sync(cliente,cliente->mfile);
+}
+
+void scrollh(struct i2c_client *cliente,int value) {
+
+	struct input_event ev;
+	memset(&ev, 0, sizeof(struct input_event));
+
+	ev.type = EV_REL;
+	ev.code = REL_HWHEEL;
+	ev.value = value;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+
+	do_sync(cliente,cliente->mfile);
+}
+
+void zoom(struct i2c_client *cliente,int value) {
+
+	struct input_event ev;
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_LEFTCTRL;
+	ev.value = 1;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_REL;
+	ev.code = REL_WHEEL;
+	ev.value = value;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_LEFTCTRL;
+	ev.value = 0;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+}
+
+void read_coords(struct i2c_client *cliente) {
+
+	u8 buffer[10];
+	int retval;
+	static enum read_status cstatus=RS_idle;
+	static int old_x=0;
+	static int old_y=0;
+	static int old_dist=0;
+
+	int x1=0;
+	int y1=0;
+	int x2=0;
+	int y2=0;
+	int xm=0;
+	int ym=0;
+	int dist=0;
+
+	retval=gsl_ts_read(cliente, GSL_DATA_REG, buffer, 1);
+	if (retval<=0) {
+		printf("error reading number of touches: %d\n",retval);
+		return;
+	}
+	
+	u8 touches=buffer[0]<=2 ? buffer[0] : 2;
+	if (touches>0) {
+		retval=gsl_ts_read(cliente,0x84,buffer,4);
+		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
+		y1=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
+		if (touches>1) {
+			retval=gsl_ts_read(cliente,0x88,buffer,4);
+			x2=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
+			y2=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
+			xm=(x1+x2)/2;
+			ym=(y1+y2)/2;
+			int xt,yt;
+			xt = (x1>x2) ? x1-x2 : x2-x1;
+			yt = (y1>y2) ? y1-y2 : y2-y1;
+			dist=xt*xt+yt*yt;
+		} else {
+			x2=x1;
+			y2=y1;
+			xm=x1;
+			ym=y1;
+			dist=0;
+		}
+	}
+
+	switch(cstatus) {
+	case RS_idle:
+		if (touches==1) {
+			old_x=x1;
+			old_y=y1;
+			cstatus=RS_one_A;
+			return;
+		}
+		if (touches==2) {
+			old_x=xm;
+			old_y=ym;
+			old_dist=dist;
+			move_to(cliente,old_x,old_y);
+			cstatus=RS_two;
+			return;
+		}
+	break;
+	case RS_one_A:
+		if (touches==2) {
+			old_x=xm;
+			old_y=ym;
+			old_dist=dist;
+			move_to(cliente,old_x,old_y);
+			cstatus=RS_two;
+			return;
+		}
+		if (touches==0) {
+			move_to(cliente,old_x,old_y);
+			click(cliente,1);
+			click(cliente,0);
+			cstatus=RS_idle;
+			return;
+		}
+		if (touches==1) {
+			if ((old_x!=x1)||(old_y!=y1)) {
+				move_to(cliente,old_x,old_y);
+				click(cliente,1);
+				old_x=x1;
+				old_y=x2;
+				cstatus=RS_one_B;
+			}
+			return;
+		}
+	break;
+	case RS_one_B:
+		if (touches==1) {
+			if ((old_x!=x1)||(old_y!=y1)) {
+				move_to(cliente,old_x,old_y);
+				old_x=x1;
+				old_y=y1;
+			}
+			return;
+		}
+		if (touches==0) {
+			click(cliente,0);
+			cstatus=RS_idle;
+			return;
+		}
+	break;
+	case RS_two:
+		if (touches==2) {
+			int d;
+			d=(xm-old_x)/X_THRESHOLD;
+			if (d!=0) {
+				scrollh(cliente,d);
+				old_x=xm;
+			}
+			d=(ym-old_y)/Y_THRESHOLD;
+			if (d!=0) {
+				scroll(cliente,d);
+				old_y=ym;
+			}
+			d=(dist-old_dist)/Z_THRESHOLD;
+			if (d!=0) {
+				if (d>0) {
+					zoom(cliente,(int)(sqrt(d)));
+				} else {
+					zoom(cliente,-((int)(sqrt(-d))));
+				}
+				old_dist=dist;
+			}
+		}
+		if (touches==0) {
+			cstatus=RS_idle;
+		}
+	break;
 	}
 }
 
@@ -256,8 +403,8 @@ void read_coords(struct i2c_client *cliente) {
 int main(int argc, char **argv) {
 
 	struct i2c_client cliente;
-	int ufile;
 	int retval;
+	struct uinput_user_dev uidev;
 	
 	if (argc!=3) {
 		printf("Format: driver DEVICE FW_FILE\n");
@@ -281,26 +428,23 @@ int main(int argc, char **argv) {
 		return -2;
 	}
 
-	ufile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-	if (ufile<0) {
-		ufile=open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
-		if (ufile<0) {
+	cliente.ufile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+	if (cliente.ufile<0) {
+		cliente.ufile=open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
+		if (cliente.ufile<0) {
 			printf("Can't connect to UINPUT interface.\n");
 			return -2;
 		}
 	}
-	
-	
-	retval = ioctl(ufile, UI_SET_EVBIT, EV_KEY);
-	retval = ioctl(ufile, UI_SET_KEYBIT, BTN_LEFT);
-	retval = ioctl(ufile, UI_SET_EVBIT, EV_ABS);
-	
-	// allow to send absolute coordinates
-	retval = ioctl(ufile, UI_SET_ABSBIT, ABS_X);
-	retval = ioctl(ufile, UI_SET_ABSBIT, ABS_Y);
-	
-	struct uinput_user_dev uidev;
 
+	retval = ioctl(cliente.ufile, UI_SET_EVBIT, EV_KEY);
+	retval = ioctl(cliente.ufile, UI_SET_KEYBIT, BTN_TOUCH);
+
+	retval = ioctl(cliente.ufile, UI_SET_EVBIT, EV_ABS);
+	retval = ioctl(cliente.ufile, UI_SET_ABSBIT, ABS_X);
+	retval = ioctl(cliente.ufile, UI_SET_ABSBIT, ABS_Y);
+	
+	
 	memset(&uidev, 0, sizeof(uidev));
 
 	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "gsl1680-uinput");
@@ -312,17 +456,48 @@ int main(int argc, char **argv) {
 	uidev.absmax[ABS_X] = SCREEN_MAX_X-1;
 	uidev.absmin[ABS_Y] = 0;
 	uidev.absmax[ABS_Y] = SCREEN_MAX_Y-1;
-	retval = write(ufile, &uidev, sizeof(uidev));
+	retval = write(cliente.ufile, &uidev, sizeof(uidev));
 	
-	retval = ioctl(ufile, UI_DEV_CREATE);
+	retval = ioctl(cliente.ufile, UI_DEV_CREATE);
+	retval = ioctl(cliente.ufile, UI_SET_PROPBIT,INPUT_PROP_DIRECT);
 
-	cliente.ufile=ufile;
+	cliente.mfile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+	if (cliente.mfile<0) {
+		cliente.mfile=open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
+		if (cliente.mfile<0) {
+			printf("Can't connect to UINPUT interface.\n");
+			return -2;
+		}
+	}
+
+	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_KEY);
+	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_LEFT);
+	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_RIGHT);
+	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_LEFTCTRL);
+
+	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_REL);
+	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_X);
+	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_Y);
+	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_WHEEL);
+	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_HWHEEL);
+	
+	memset(&uidev, 0, sizeof(uidev));
+	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "gsl1680-2-uinput");
+	uidev.id.bustype = BUS_I2C;
+	uidev.id.vendor  = 0x1;
+	uidev.id.product = 0x2;
+	uidev.id.version = 1;
+	retval = write(cliente.mfile, &uidev, sizeof(uidev));
+	
+	retval = ioctl(cliente.mfile, UI_SET_PROPBIT,INPUT_PROP_POINTER);
+	
+	retval = ioctl(cliente.mfile, UI_DEV_CREATE);
 
 	init_chip(&cliente,argv[2]);
 
 	while(1) {
 		read_coords(&cliente);
-		usleep(15000);
+		usleep(20000); // do 50 reads per second
 	}
 }
 
