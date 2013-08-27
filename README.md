@@ -31,6 +31,8 @@ DEVICE is the I2C bus where the driver chip is installed (in the case of the Sce
 
 FIRMWARE_FILE is the file with the firmware, in the format explained before. This firmware is ussually specific for each tablet. In the case of the Scenio 1207 tablet, it is located in the folder */system/etc*.
 
+The driver presumes that */sys/devices/virtual/misc/sun4i-gpio/pin/pb3* enables or disables the chip.
+
 ## More info about this chip ##
 
 There's a page with technical info about this chip at http://linux-sunxi.org/GSL1680
