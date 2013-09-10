@@ -1,9 +1,11 @@
 gsl1680
 =======
 
+Version 2
+
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
-This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), zoom in/zoom out (pinching with two fingers), and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1).
+This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), zoom in/zoom out (pinching with two fingers), and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1). Finally, when touching with three fingers will emulate Ctrl+COMPOSE (also known as MENU), which allows to show the on-screen keyboard in TabletWM.
 
 ## How to use the driver ##
 

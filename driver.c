@@ -276,6 +276,40 @@ void zoom(struct i2c_client *cliente,int value) {
 	do_sync(cliente,cliente->mfile);
 }
 
+void menu_ctrl(struct i2c_client *cliente) {
+
+	struct input_event ev;
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_LEFTCTRL;
+	ev.value = 1;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_COMPOSE;
+	ev.value = 1;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_COMPOSE;
+	ev.value = 0;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+	memset(&ev, 0, sizeof(struct input_event));
+	ev.type = EV_KEY;
+	ev.code = KEY_LEFTCTRL;
+	ev.value = 0;
+	write(cliente->mfile, &ev, sizeof(struct input_event));
+	do_sync(cliente,cliente->mfile);
+
+}
+
 void read_coords(struct i2c_client *cliente) {
 
 	u8 buffer[10];
@@ -299,7 +333,7 @@ void read_coords(struct i2c_client *cliente) {
 		return;
 	}
 	
-	u8 touches=buffer[0]<=2 ? buffer[0] : 2;
+	u8 touches=buffer[0]<=3 ? buffer[0] : 3;
 	if (touches>0) {
 		retval=gsl_ts_read(cliente,0x84,buffer,4);
 		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
@@ -339,8 +373,18 @@ void read_coords(struct i2c_client *cliente) {
 			cstatus=RS_two_A;
 			return;
 		}
+		if (touches==3) {
+			cstatus=RS_three_A;
+			menu_ctrl(cliente);
+			return;
+		}
 	break;
 	case RS_one_A:
+		if (touches==3) {
+			cstatus=RS_three_A;
+			menu_ctrl(cliente);
+			return;
+		}
 		if (touches==2) {
 			old_x=xm;
 			old_y=ym;
@@ -383,6 +427,11 @@ void read_coords(struct i2c_client *cliente) {
 		}
 	break;
 	case RS_two_A:
+		if (touches==3) {
+			cstatus=RS_three_A;
+			menu_ctrl(cliente);
+			return;
+		}
 		if (touches==1) {
 			old_x=x1;
 			old_y=y1;
@@ -451,6 +500,13 @@ void read_coords(struct i2c_client *cliente) {
 			cstatus=RS_right_A;
 			return;
 		}
+	break;
+	case RS_three_A:
+		if (touches==0) {
+			cstatus=RS_idle;
+			return;
+		}
+	break;
 	}
 }
 
@@ -462,6 +518,7 @@ int main(int argc, char **argv) {
 	struct uinput_user_dev uidev;
 	
 	if (argc!=3) {
+		printf("Version 2\n");
 		printf("Format: driver DEVICE FW_FILE\n");
 		return 0;
 	}
@@ -529,12 +586,14 @@ int main(int argc, char **argv) {
 	 * But we need it to allow scrolling and zooming, so we define another device, this time with only
 	 * relative pointing.
 	 * It also can emit the LEFT CONTROL key to emulate zoom in and zoom out (CTRL+vertical scroll)
+	 * Finally, it allows to emit CONTROL+MENU key to interface with TabletWM
 	 */
 
 	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_KEY);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_LEFT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_RIGHT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_LEFTCTRL);
+	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_COMPOSE);
 
 	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_REL);
 	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_X);
