@@ -40,6 +40,11 @@ static int gsl_ts_write(struct i2c_client *client, u8 addr, u8 *pdata, int datal
 	int ret = 0;
 	u8 tmp_buf[128];
 	unsigned int bytelen;
+
+	if (client==NULL) {
+		return datalen+1;
+	}
+
 	if (datalen > 125) {
 		printf("%s too big datalen = %d!\n", __func__, datalen);
 		return -1;
@@ -121,9 +126,26 @@ static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 
 	u32 offset;
 	u32 val;
+	char is_binary;
+	unsigned char buffer[8];
 
-	for (source_line = 0; !feof(fichero); source_line++) 	{
-		fscanf(fichero,"{%x,%x}, ",&offset,&val);
+	// check if it is a plain-text or binary file
+	retval=fscanf(fichero,"{%x,%x}, ",&offset,&val);
+	if (retval==2) {
+		is_binary=0;
+	} else {
+		is_binary=1;
+	}
+	rewind(fichero);
+
+	for (source_line = 0; !feof(fichero); source_line++) {
+		if (is_binary==1) {
+			fread(buffer,4,2,fichero);
+			offset=((u32)buffer[0])+0x0100*((u32)buffer[1])+0x010000*((u32)buffer[2])+0x01000000*((u32)buffer[3]);
+			val   =((u32)buffer[4])+0x0100*((u32)buffer[5])+0x010000*((u32)buffer[6])+0x01000000*((u32)buffer[7]);
+		} else {
+			fscanf(fichero,"{%x,%x}, ",&offset,&val);
+		}
 		/* init page trans, set the page val */
 		if (GSL_PAGE_REG == offset) {
 			fw2buf(buf, &val);
@@ -131,11 +153,11 @@ static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 		} else {
 			buf[0] = (u8)offset;
 			fw2buf(buf+1, &val);
-   			retval=gsl_ts_write(client, buf[0], buf+1, 4);
-   			if(retval!=5) {
-   				errno=retval;
-   				perror("Error al enviar datos\n");
-   			}
+			retval=gsl_ts_write(client, buf[0], buf+1, 4);
+			if(retval!=5) {
+				errno=retval;
+				perror("Error while sending firmware data\n");
+			}
 		}
 	}
 
