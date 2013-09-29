@@ -9,6 +9,6 @@ install:
 	install gslx680.init /etc/init.d/gslx680
 	update-rc.d gslx680 defaults
 
-clear:
-	rm -rf driver *.o
+clean:
+	rm -rf gslx680 *.o
 
