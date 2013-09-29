@@ -29,7 +29,7 @@ The first value in each line is the register number, and the second value is the
 
 The binary format is the same, but the values are directly in binary, as 4-byte integers, in little-endian format, and without any ASCII markers; just the raw values. So the previous firmware would be represented like a raw sequence of bytes with these values:
 
-F0 00 00 00 03 00 00 00 00 00 00 00 C0 FF A5 A5 04 00 00 00 00 00 00 00 08 00 00 00 E1 C4 10 E8...
+    F0 00 00 00 03 00 00 00 00 00 00 00 C0 FF A5 A5 04 00 00 00 00 00 00 00 08 00 00 00 E1 C4 10 E8...
 
 To launch the driver, just use:
 
