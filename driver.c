@@ -556,7 +556,7 @@ int main(int argc, char **argv) {
 	int SCREEN_MAX_Y_VAR=SCREEN_MAX_Y;
 	
 	if (argc<3) {
-		printf("Version 2\n");
+		printf("Version 3\n");
 		printf("Format: driver [-res XxY] [-gpio PATH] DEVICE FW_FILE\n");
 		return 0;
 	}
