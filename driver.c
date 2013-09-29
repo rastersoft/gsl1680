@@ -17,16 +17,31 @@ struct i2c_client {
 	int adapter;
 	int ufile;
 	int mfile;
+	char *gpio;
 };
 
+void send_value(int value, struct i2c_client *cliente) {
 
-static int gslX680_shutdown_low(void) {
-	system("echo 0 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
+	int fd;
+	char buffer[20];
+
+	sprintf(buffer,"%d",value);
+	fd=open(cliente->gpio,O_WRONLY);
+	if (fd<=0) {
+		printf("Can't open device %s\n",cliente->gpio);
+		return;
+	}
+	write(fd,buffer,strlen(buffer));
+	close(fd);
+}
+
+static int gslX680_shutdown_low(struct i2c_client *cliente) {
+	send_value(0,cliente);
 	return 0;
 }
 
-static int gslX680_shutdown_high(void) {
-	system("echo 1 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
+static int gslX680_shutdown_high(struct i2c_client *cliente) {
+	send_value(1,cliente);
 	return 0;
 }
 
@@ -177,14 +192,14 @@ static void init_chip(struct i2c_client *client,char *fw_file) {
 	gsl_load_fw(client,fw_file);
 	startup_chip(client);
 	reset_chip(client);
-	gslX680_shutdown_low();	
-	usleep(50000); 	
-	gslX680_shutdown_high();	
-	usleep(30000); 		
-	gslX680_shutdown_low();	
-	usleep(5000); 	
-	gslX680_shutdown_high();	
-	usleep(20000); 	
+	gslX680_shutdown_low(client);
+	usleep(50000);
+	gslX680_shutdown_high(client);
+	usleep(30000);
+	gslX680_shutdown_low(client);
+	usleep(5000);
+	gslX680_shutdown_high(client);
+	usleep(20000);
 	reset_chip(client);
 	startup_chip(client);	
 }
@@ -532,30 +547,84 @@ void read_coords(struct i2c_client *cliente) {
 	}
 }
 
-
 int main(int argc, char **argv) {
 
 	struct i2c_client cliente;
 	int retval;
 	struct uinput_user_dev uidev;
+	int SCREEN_MAX_X_VAR=SCREEN_MAX_X;
+	int SCREEN_MAX_Y_VAR=SCREEN_MAX_Y;
 	
-	if (argc!=3) {
+	if (argc<3) {
 		printf("Version 2\n");
-		printf("Format: driver DEVICE FW_FILE\n");
+		printf("Format: driver [-res XxY] [-gpio PATH] DEVICE FW_FILE\n");
 		return 0;
 	}
-	
-	printf("Connecting to device %s, firmware %s\n",argv[1],argv[2]);
-	
-	cliente.adapter=open(argv[1],O_RDWR);
-	if (cliente.adapter<0) {
-		printf("Can't open device\n");
+
+	char *adapter=NULL;
+	char *firmware=NULL;
+	char *option;
+	cliente.gpio="/sys/devices/virtual/misc/sun4i-gpio/pin/pb3";
+	int loop=1;
+	while(loop<argc) {
+		option=argv[loop];
+		loop++;
+		if (option[0]=='-') {
+			if (loop==argc) {
+				printf("Error: option %s doesn't have parameters\n",option);
+				return -1;
+			}
+			if (!strcmp(option,"-res")) {
+				if (2!=sscanf(argv[loop],"%dx%d",&SCREEN_MAX_X_VAR,&SCREEN_MAX_Y_VAR)) {
+					printf("Error: resolution %s has an incorrect format\n",argv[loop]);
+					return -1;
+				}
+				loop++;
+				continue;
+			}
+			if (!strcmp(option,"-gpio")) {
+				cliente.gpio=strdup(argv[loop]);
+				loop++;
+				continue;
+			}
+			printf("Unknown option %s\n",option);
+			return -1;
+		}
+		if (adapter==NULL) {
+			adapter=strdup(option);
+			continue;
+		}
+		if (firmware==NULL) {
+			firmware=strdup(option);
+			continue;
+		}
+		printf("Too many parameters\n");
 		return -1;
 	}
 
-	system("echo 0 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
+	if (adapter==NULL) {
+		printf("Missing adapter path\n");
+		return -1;
+	}
+
+	if (firmware==NULL) {
+		printf("Missing firmware path\n");
+		return -1;
+	}
+
+	printf("Connecting to device %s, firmware %s\n",adapter,firmware);
+	
+	cliente.adapter=open(adapter,O_RDWR);
+	if (cliente.adapter<0) {
+		printf("Can't open device %s\n",adapter);
+		return -1;
+	}
+
+	send_value(0,&cliente);
+	//system("echo 0 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
 	usleep(100000);
-	system("echo 1 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
+	send_value(1,&cliente);
+	//system("echo 1 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
 
 	if (ioctl(cliente.adapter, I2C_SLAVE, GSLX680_I2C_ADDR) < 0) {
 		printf("Error selecting device %d\n",GSLX680_I2C_ADDR);
@@ -587,13 +656,14 @@ int main(int argc, char **argv) {
 	uidev.id.product = 0x1;
 	uidev.id.version = 1;
 	uidev.absmin[ABS_X] = 0;
-	uidev.absmax[ABS_X] = SCREEN_MAX_X-1;
+	uidev.absmax[ABS_X] = SCREEN_MAX_X_VAR-1;
 	uidev.absmin[ABS_Y] = 0;
-	uidev.absmax[ABS_Y] = SCREEN_MAX_Y-1;
+	uidev.absmax[ABS_Y] = SCREEN_MAX_Y_VAR-1;
 	retval = write(cliente.ufile, &uidev, sizeof(uidev));
 	
 	retval = ioctl(cliente.ufile, UI_DEV_CREATE);
 	retval = ioctl(cliente.ufile, UI_SET_PROPBIT,INPUT_PROP_DIRECT);
+	retval = ioctl(cliente.ufile, UI_SET_PROPBIT,INPUT_PROP_POINTER);
 
 	cliente.mfile=open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 	if (cliente.mfile<0) {
@@ -635,7 +705,7 @@ int main(int argc, char **argv) {
 	
 	retval = ioctl(cliente.mfile, UI_DEV_CREATE);
 
-	init_chip(&cliente,argv[2]);
+	init_chip(&cliente,firmware);
 
 	while(1) {
 		read_coords(&cliente);
