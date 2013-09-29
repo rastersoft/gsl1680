@@ -27,7 +27,7 @@ The plain-text format has the form:
 
 The first value in each line is the register number, and the second value is the data itself. Each code block starts with a 0xf0 register value (the PAGE register), and a data value with the page number where this piece of code has to be copied. After it, comes up to 128 bytes, grouped in 4-byte values.
 
-The binary format is the same, but the values are directly in binary, as 4-byte integers, in little-endian format, and without any ASCII markers; just the raw values. So the previous firmware would be represented like a raw sequence of bytes with these values:
+The binary format is the same, but the values are directly in binary, as 4-byte integers, in little-endian format, and without any ASCII markers; just the raw values. So the previous firmware would be represented with a raw sequence of bytes with these values:
 
     F0 00 00 00 03 00 00 00 00 00 00 00 C0 FF A5 A5 04 00 00 00 00 00 00 00 08 00 00 00 E1 C4 10 E8...
 
