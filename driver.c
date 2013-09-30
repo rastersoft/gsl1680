@@ -153,6 +153,7 @@ static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 	}
 	rewind(fichero);
 
+	printf("Sending code\n");
 	for (source_line = 0; !feof(fichero); source_line++) {
 		if (is_binary==1) {
 			fread(buffer,4,2,fichero);
