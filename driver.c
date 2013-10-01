@@ -1,3 +1,5 @@
+#include "driver.h"
+
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
@@ -11,7 +13,9 @@
 #include <linux/uinput.h>
 #include <math.h>
 
-#include "driver.h"
+#ifdef USE_FB
+#include "linux/fb.h"
+#endif
 
 struct i2c_client {
 	int adapter;
@@ -591,6 +595,19 @@ int main(int argc, char **argv) {
 	cliente.resx=SCREEN_MAX_X;
 	cliente.resy=SCREEN_MAX_Y;
 
+#ifdef USE_FB
+	int fb_dev;
+	fb_dev=open("/dev/fb0",O_RDWR);
+	if (fb_dev>0) {
+		struct fb_var_screeninfo vinfo;
+		if (0==ioctl (fb_dev, FBIOGET_VSCREENINFO, &vinfo)) {
+			cliente.resx=vinfo.xres;
+			cliente.resy=vinfo.yres;
+	    }
+	    close(fb_dev);
+	}
+#endif
+
 	int loop=1;
 	while(loop<argc) {
 		option=argv[loop];
@@ -655,10 +672,8 @@ int main(int argc, char **argv) {
 	}
 
 	send_value(0,&cliente);
-	//system("echo 0 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
 	usleep(100000);
 	send_value(1,&cliente);
-	//system("echo 1 > /sys/devices/virtual/misc/sun4i-gpio/pin/pb3");
 
 	if (ioctl(cliente.adapter, I2C_SLAVE, GSLX680_I2C_ADDR) < 0) {
 		printf("Error selecting device %d\n",GSLX680_I2C_ADDR);

@@ -12,8 +12,8 @@
 #define GSL_STATUS_REG		0xe0
 #define GSL_PAGE_REG		0xf0
 
-#define X_THRESHOLD 12
-#define Y_THRESHOLD 12
+#define X_THRESHOLD 15
+#define Y_THRESHOLD 15
 // 150^2=150*150=22500
 #define Z_THRESHOLD 22500
 
@@ -26,5 +26,7 @@ typedef unsigned int  bool;
 #define false 0
 
 enum read_status {RS_idle, RS_one_A, RS_one_B, RS_two_A, RS_two_B, RS_right_A, RS_right_B, RS_three_A, RS_three_B};
+
+//#define USE_FB
 
 #endif
