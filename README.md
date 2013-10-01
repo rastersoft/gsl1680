@@ -1,7 +1,7 @@
 gsl1680
 =======
 
-Version 3
+Version 4
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
@@ -33,7 +33,7 @@ The binary format is the same, but the values are directly in binary, as 4-byte 
 
 To launch the driver, just use:
 
-	./driver [-res XxY] [-gpio PATH] DEVICE FIRMWARE_FILE
+	./driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] DEVICE FIRMWARE_FILE
 	
 DEVICE is the I2C bus where the driver chip is installed (in the case of the Scenio 1207 tablet, it is /dev/i2c-1).
 
@@ -42,6 +42,8 @@ FIRMWARE_FILE is the file with the firmware, in the format explained before. Thi
 **-res** allows to specify the screen resolution. If not set, the driver will use 800x600 pixels.
 
 **-gpio** allows to specify the path to the GPIO device that enables or disables the chip. By default, it presumes it is */sys/devices/virtual/misc/sun4i-gpio/pin/pb3*. In order to make this work, it a must to have the GPIO support in the kernel and to enable that pin as an **OUTPUT** gpio.
+
+**-invert_x** and **-invert_y** allows to invert the horizontal or vertical coordinates, in case that, when you touch the left part of the screen, the cursor moves to the right, and so on.
 
 In the case of the sun4i SoCs, for example, to know which pin correspond to the enable/disable option of the chip, you need to check the .FEX configuration file and find the *ctp_wakeup* pin in the *ctp* option part (where the touch screen is defined) and create a GPIO entry at the end of the file with:
 

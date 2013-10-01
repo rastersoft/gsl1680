@@ -18,6 +18,10 @@ struct i2c_client {
 	int ufile;
 	int mfile;
 	char *gpio;
+	char invert_x;
+	char invert_y;
+	int resx;
+	int resy;
 };
 
 void send_value(int value, struct i2c_client *cliente) {
@@ -376,10 +380,22 @@ void read_coords(struct i2c_client *cliente) {
 		retval=gsl_ts_read(cliente,0x84,buffer,4);
 		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
 		y1=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
+		if (cliente->invert_x) {
+			x1=cliente->resx-x1-1;
+		}
+		if (cliente->invert_y) {
+			y1=cliente->resy-y1-1;
+		}
 		if (touches>1) {
 			retval=gsl_ts_read(cliente,0x88,buffer,4);
 			x2=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
 			y2=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
+			if (cliente->invert_x) {
+				x2=cliente->resx-x2-1;
+			}
+			if (cliente->invert_y) {
+				y2=cliente->resy-y2-1;
+			}
 			xm=(x1+x2)/2;
 			ym=(y1+y2)/2;
 			int xt,yt;
@@ -553,30 +569,47 @@ int main(int argc, char **argv) {
 	struct i2c_client cliente;
 	int retval;
 	struct uinput_user_dev uidev;
-	int SCREEN_MAX_X_VAR=SCREEN_MAX_X;
-	int SCREEN_MAX_Y_VAR=SCREEN_MAX_Y;
 	
 	if (argc<3) {
-		printf("Version 3\n");
-		printf("Format: driver [-res XxY] [-gpio PATH] DEVICE FW_FILE\n");
+		printf("Version 4\n");
+		printf("Format: driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] DEVICE FW_FILE\n\n");
+		printf("-res XxY: specifies that the screen resolution is X width and Y height (default: 800x480)\n");
+		printf("-gpio PATH: sets the path to the GPIO device that enables and disables the touch chip\n");
+		printf("-invert_x: inverts the X coordinates\n");
+		printf("-invert_y: inverts the Y coordinates\n");
+		printf("DEVICE: path to the I2C device where the GSLx680 chip is connected\n");
+		printf("FW_FILE: path to the firmware file for the GSLx680 chip\n");
 		return 0;
 	}
 
 	char *adapter=NULL;
 	char *firmware=NULL;
 	char *option;
+	cliente.invert_x=0;
+	cliente.invert_y=0;
 	cliente.gpio="/sys/devices/virtual/misc/sun4i-gpio/pin/pb3";
+	cliente.resx=SCREEN_MAX_X;
+	cliente.resy=SCREEN_MAX_Y;
+
 	int loop=1;
 	while(loop<argc) {
 		option=argv[loop];
 		loop++;
 		if (option[0]=='-') {
+			if (!strcmp(option,"-invert_x")) {
+				cliente.invert_x=1;
+				continue;
+			}
+			if (!strcmp(option,"-invert_y")) {
+				cliente.invert_y=1;
+				continue;
+			}
 			if (loop==argc) {
 				printf("Error: option %s doesn't have parameters\n",option);
 				return -1;
 			}
 			if (!strcmp(option,"-res")) {
-				if (2!=sscanf(argv[loop],"%dx%d",&SCREEN_MAX_X_VAR,&SCREEN_MAX_Y_VAR)) {
+				if (2!=sscanf(argv[loop],"%dx%d",&cliente.resx,&cliente.resy)) {
 					printf("Error: resolution %s has an incorrect format\n",argv[loop]);
 					return -1;
 				}
@@ -657,9 +690,9 @@ int main(int argc, char **argv) {
 	uidev.id.product = 0x1;
 	uidev.id.version = 1;
 	uidev.absmin[ABS_X] = 0;
-	uidev.absmax[ABS_X] = SCREEN_MAX_X_VAR-1;
+	uidev.absmax[ABS_X] = cliente.resx-1;
 	uidev.absmin[ABS_Y] = 0;
-	uidev.absmax[ABS_Y] = SCREEN_MAX_Y_VAR-1;
+	uidev.absmax[ABS_Y] = cliente.resy-1;
 	retval = write(cliente.ufile, &uidev, sizeof(uidev));
 	
 	retval = ioctl(cliente.ufile, UI_DEV_CREATE);
