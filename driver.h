@@ -12,8 +12,8 @@
 #define GSL_STATUS_REG		0xe0
 #define GSL_PAGE_REG		0xf0
 
-#define X_THRESHOLD 15
-#define Y_THRESHOLD 15
+#define X_THRESHOLD 25
+#define Y_THRESHOLD 25
 // 150^2=150*150=22500
 #define Z_THRESHOLD 22500
 
