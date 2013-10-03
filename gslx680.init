@@ -2,7 +2,7 @@
 # /etc/init.d/gslx680
 
 ### BEGIN INIT INFO
-# Provides: launch_x11
+# Provides: gslx680
 # Required-Start: $all
 # Required-Stop:
 # Default-Start: 2 3 4 5
