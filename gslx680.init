@@ -7,8 +7,8 @@
 # Required-Stop:
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: Starts X11 as user "debian"
-# Description: Starts X11 as user "debian", launching the .xinitrc script at /home/debian, which launches tabletwm
+# Short-Description: Starts GSLx680 user-space driver
+# Description: Starts the GSLx680 user-space driver for capacitive touch screens
 ### END INIT INFO
 
 case "$1" in
