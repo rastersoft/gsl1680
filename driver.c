@@ -391,15 +391,10 @@ void read_coords(struct i2c_client *cliente) {
 
 	if (touches==0) {
 		old_time = now.tv_sec;
-		old_ms = now.tv_usec;
+		old_ms = now.tv_usec/1000;
 		old_touches=0;
 	} else {
-		time_passed=((int)(1000*(now.tv_sec-old_time)));
-		if (now.tv_usec<old_ms) {
-			time_passed+=((1000000+now.tv_usec)-old_ms)/1000;
-		} else {
-			time_passed+=(now.tv_usec-old_ms)/1000;
-		}
+		time_passed=(int)(((1000*now.tv_sec)+(now.tv_usec/1000))-((old_time*1000)+old_ms));
 		retval=gsl_ts_read(cliente,0x84,buffer,4);
 		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
 		y1=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
