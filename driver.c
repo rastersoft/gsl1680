@@ -406,6 +406,8 @@ void read_coords(struct i2c_client *cliente) {
 		if (old_touches==0) {
 			old_startx=x1;
 			old_starty=y1;
+			old_x=xm;
+			old_y=ym;
 			old_touches=touches;
 		}
 		if (cliente->invert_x) {
