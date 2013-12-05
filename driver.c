@@ -26,6 +26,7 @@ struct i2c_client {
 	char invert_y;
 	int resx;
 	int resy;
+	char new_scroll;
 };
 
 void send_value(int value, struct i2c_client *cliente) {
@@ -364,6 +365,12 @@ void read_coords(struct i2c_client *cliente) {
 	static int old_x=0;
 	static int old_y=0;
 	static int old_dist=0;
+	static int old_startx=0;
+	static int old_starty=0;
+	static char old_touches=0;
+	static time_t old_time=0;
+	static suseconds_t old_ms=0;
+	struct timeval now;
 
 	int x1=0;
 	int y1=0;
@@ -372,18 +379,35 @@ void read_coords(struct i2c_client *cliente) {
 	int xm=0;
 	int ym=0;
 	int dist=0;
+	int time_passed=0;
 
 	retval=gsl_ts_read(cliente, GSL_DATA_REG, buffer, 1);
 	if (retval<=0) {
 		printf("error reading number of touches: %d\n",retval);
 		return;
 	}
-	
+	gettimeofday(&now,NULL);
 	u8 touches=buffer[0]<=3 ? buffer[0] : 3;
-	if (touches>0) {
+
+	if (touches==0) {
+		old_time = now.tv_sec;
+		old_ms = now.tv_usec;
+		old_touches=0;
+	} else {
+		time_passed=((int)(1000*(now.tv_sec-old_time)));
+		if (now.tv_usec<old_ms) {
+			time_passed+=(1000+now.tv_usec)-old_ms;
+		} else {
+			time_passed+=now.tv_usec-old_ms;
+		}
 		retval=gsl_ts_read(cliente,0x84,buffer,4);
 		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
 		y1=(((unsigned int)buffer[2])+256*((unsigned int)buffer[3]))&0x0FFF;
+		if (old_touches==0) {
+			old_startx=x1;
+			old_starty=y1;
+			old_touches=touches;
+		}
 		if (cliente->invert_x) {
 			x1=cliente->resx-x1-1;
 		}
@@ -460,11 +484,27 @@ void read_coords(struct i2c_client *cliente) {
 		}
 		if (touches==1) {
 			if ((old_x!=x1)||(old_y!=y1)) {
-				move_to(cliente,old_x,old_y);
-				click(cliente,1);
-				old_x=x1;
-				old_y=x2;
-				cstatus=RS_one_B;
+				if (cliente->new_scroll) {
+					int d;
+					d=(old_x-xm)/X_THRESHOLD;
+					if (d!=0) {
+						scrollh(cliente,d);
+						old_x=xm;
+						cstatus=RS_one_B;
+					}
+					d=(ym-old_y)/Y_THRESHOLD;
+					if (d!=0) {
+						scroll(cliente,d);
+						old_y=ym;
+						cstatus=RS_one_B;
+					}
+				} else {
+					move_to(cliente,old_x,old_y);
+					click(cliente,1);
+					old_x=x1;
+					old_y=x2;
+					cstatus=RS_one_B;
+				}
 			}
 			return;
 		}
@@ -472,9 +512,23 @@ void read_coords(struct i2c_client *cliente) {
 	case RS_one_B:
 		if (touches==1) {
 			if ((old_x!=x1)||(old_y!=y1)) {
-				move_to(cliente,old_x,old_y);
-				old_x=x1;
-				old_y=y1;
+				if (cliente->new_scroll) {
+					int d;
+					d=(old_x-xm)/X_THRESHOLD;
+					if (d!=0) {
+						scrollh(cliente,d);
+						old_x=xm;
+					}
+					d=(ym-old_y)/Y_THRESHOLD;
+					if (d!=0) {
+						scroll(cliente,d);
+						old_y=ym;
+					}
+				} else {
+					move_to(cliente,old_x,old_y);
+					old_x=x1;
+					old_y=y1;
+				}
 			}
 			return;
 		}
@@ -619,6 +673,11 @@ int main(int argc, char **argv) {
 			}
 			if (!strcmp(option,"-invert_y")) {
 				cliente.invert_y=1;
+				continue;
+			}
+			if (!strcmp(option,"-new_scroll")) {
+				cliente.invert_y=1;
+				cliente.new_scroll=1;
 				continue;
 			}
 			if (loop==argc) {
