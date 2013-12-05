@@ -11,16 +11,23 @@
 # Description: Starts the GSLx680 user-space driver for capacitive touch screens
 ### END INIT INFO
 
+function do_stop {
+    killall gslx680
+}
+
+function do_start {
+    /bin/gslx680 -new_scroll /dev/i2c-1 /etc/gslx680/firmware.cfg &
+}
 case "$1" in
   start)
-    /bin/gslx680 -new_scroll /dev/i2c-1 /etc/gslx680/firmware.cfg &
+    do_start
     ;;
   stop)
-    killall gslx680
+    do_stop
     ;;
   restart)
-  	stop
-  	start
+  	do_stop
+  	do_start
   	;;
   *)
     echo "Usage: service gslx680 {start|stop}"
