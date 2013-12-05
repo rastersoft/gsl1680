@@ -18,6 +18,10 @@ case "$1" in
   stop)
     killall gslx680
     ;;
+  restart)
+  	stop
+  	start
+  	;;
   *)
     echo "Usage: service gslx680 {start|stop}"
     exit 1
