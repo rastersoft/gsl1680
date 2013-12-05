@@ -27,7 +27,7 @@ typedef unsigned int  bool;
 #define true 1
 #define false 0
 
-enum read_status {RS_idle, RS_one_A, RS_one_B, RS_two_A, RS_two_B, RS_right_A, RS_right_B, RS_three_A, RS_three_B};
+enum read_status {RS_idle, RS_one_A, RS_one_B, RS_one_C, RS_two_A, RS_two_B, RS_right_A, RS_right_B, RS_three_A, RS_three_B};
 
 //#define USE_FB
 
