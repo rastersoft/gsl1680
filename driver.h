@@ -17,6 +17,8 @@
 // 150^2=150*150=22500
 #define Z_THRESHOLD 22500
 
+#define SINGLE_CLICK_OFFSET 10
+
 typedef unsigned int u32;
 typedef unsigned short int u16;
 typedef unsigned char u8;

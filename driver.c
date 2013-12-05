@@ -485,22 +485,29 @@ void read_coords(struct i2c_client *cliente) {
 			return;
 		}
 		if (touches==1) {
-			if ((old_x!=x1)||(old_y!=y1)) {
-				if (cliente->new_scroll) {
-					int d;
-					d=(old_x-xm)/X_THRESHOLD;
-					if (d!=0) {
-						scrollh(cliente,d);
-						old_x=xm;
-						cstatus=RS_one_B;
-					}
-					d=(ym-old_y)/Y_THRESHOLD;
-					if (d!=0) {
-						scroll(cliente,d);
-						old_y=ym;
-						cstatus=RS_one_B;
-					}
-				} else {
+			if (cliente->new_scroll) {
+				int d;
+				d=(old_x-xm)/X_THRESHOLD;
+				if (d!=0) {
+					scrollh(cliente,d);
+					old_x=xm;
+					cstatus=RS_one_B;
+				}
+				d=(ym-old_y)/Y_THRESHOLD;
+				if (d!=0) {
+					scroll(cliente,d);
+					old_y=ym;
+					cstatus=RS_one_B;
+				}
+				if ((cstatus==RS_one_A)&&(time_passed>1000)) {
+					move_to(cliente,old_x+SINGLE_CLICK_OFFSET,old_y+SINGLE_CLICK_OFFSET);
+					click(cliente,1);
+					old_x=x1;
+					old_y=x2;
+					cstatus=RS_one_C;
+				}
+			} else {
+				if ((old_x!=x1)||(old_y!=y1)) {
 					move_to(cliente,old_x,old_y);
 					click(cliente,1);
 					old_x=x1;
@@ -540,6 +547,19 @@ void read_coords(struct i2c_client *cliente) {
 			return;
 		}
 	break;
+	case RS_one_C:
+		if (touches==1) {
+			move_to(cliente,old_x+SINGLE_CLICK_OFFSET,old_y+SINGLE_CLICK_OFFSET);
+			old_x=x1;
+			old_y=y1;
+			return;
+		}
+		if (touches==0) {
+			click(cliente,0);
+			cstatus=RS_idle;
+			return;
+		}
+	break;
 	case RS_two_A:
 		if (touches==3) {
 			cstatus=RS_three_A;
@@ -556,17 +576,19 @@ void read_coords(struct i2c_client *cliente) {
 	case RS_two_B:
 		if (touches==2) {
 			int d;
-			d=(old_x-xm)/X_THRESHOLD;
-			if (d!=0) {
-				cstatus=RS_two_B;
-				scrollh(cliente,d);
-				old_x=xm;
-			}
-			d=(ym-old_y)/Y_THRESHOLD;
-			if (d!=0) {
-				cstatus=RS_two_B;
-				scroll(cliente,d);
-				old_y=ym;
+			if (cliente->new_scroll) {
+				d=(old_x-xm)/X_THRESHOLD;
+				if (d!=0) {
+					cstatus=RS_two_B;
+					scrollh(cliente,d);
+					old_x=xm;
+				}
+				d=(ym-old_y)/Y_THRESHOLD;
+				if (d!=0) {
+					cstatus=RS_two_B;
+					scroll(cliente,d);
+					old_y=ym;
+				}
 			}
 			d=(dist-old_dist)/Z_THRESHOLD;
 			if (d!=0) {
