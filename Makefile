@@ -6,7 +6,7 @@ driver.o: driver.c driver.h
 
 install:
 	install gslx680 /bin
-	install gslx680.init /etc/init.d/gslx680
+	install igslx680.init /etc/init.d/igslx680
 	update-rc.d gslx680 defaults
 
 clean:
