@@ -396,9 +396,9 @@ void read_coords(struct i2c_client *cliente) {
 	} else {
 		time_passed=((int)(1000*(now.tv_sec-old_time)));
 		if (now.tv_usec<old_ms) {
-			time_passed+=(1000+now.tv_usec)-old_ms;
+			time_passed+=(1000000+now.tv_usec)-old_ms)/1000;
 		} else {
-			time_passed+=now.tv_usec-old_ms;
+			time_passed+=(now.tv_usec-old_ms)/1000;
 		}
 		retval=gsl_ts_read(cliente,0x84,buffer,4);
 		x1=(((unsigned int)buffer[0])+256*((unsigned int)buffer[1]))&0x0FFF;
