@@ -13,7 +13,7 @@
 
 case "$1" in
   start)
-    /bin/gslx680 /dev/i2c-1 /etc/gslx680/firmware.cfg &
+    /bin/gslx680 -new_scroll /dev/i2c-1 /etc/gslx680/firmware.cfg &
     ;;
   stop)
     killall gslx680

@@ -635,6 +635,7 @@ int main(int argc, char **argv) {
 		printf("-gpio PATH: sets the path to the GPIO device that enables and disables the touch chip\n");
 		printf("-invert_x: inverts the X coordinates\n");
 		printf("-invert_y: inverts the Y coordinates\n");
+		printf("-new_scroll: do scroll with a single finger\n");
 		printf("DEVICE: path to the I2C device where the GSLx680 chip is connected\n");
 		printf("FW_FILE: path to the firmware file for the GSLx680 chip\n");
 		return 0;
