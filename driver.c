@@ -679,7 +679,6 @@ int main(int argc, char **argv) {
 				continue;
 			}
 			if (!strcmp(option,"-new_scroll")) {
-				cliente.invert_y=1;
 				cliente.new_scroll=1;
 				continue;
 			}
