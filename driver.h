@@ -17,6 +17,7 @@
 // 150^2=150*150=22500
 #define Z_THRESHOLD 22500
 
+// When entering the Drag and Drop mode, displace the cursor SINGLE_CLICK_OFFSET pixels to ensure that the user sees it
 #define SINGLE_CLICK_OFFSET 10
 
 typedef unsigned int u32;
