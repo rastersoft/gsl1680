@@ -1,11 +1,11 @@
 gsl1680
 =======
 
-Version 4
+Version 5
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
-This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers), zoom in/zoom out (pinching with two fingers), and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1). Finally, when touching with three fingers will emulate Ctrl+COMPOSE (also known as MENU), which allows to show the on-screen keyboard in TabletWM.
+This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers by default, or with a single finger with **-new_scroll** enabled), zoom in/zoom out (pinching with two fingers), drag and drop (just touching and moving in default mode, or keeping the touch during one second to start DnD mode with **-new_scroll** enabled) and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1). Finally, when touching with three fingers will emulate Ctrl+COMPOSE (also known as MENU), which allows to show the on-screen keyboard in TabletWM.
 
 ## How to use the driver ##
 
@@ -33,8 +33,8 @@ The binary format is the same, but the values are directly in binary, as 4-byte 
 
 To launch the driver, just use:
 
-	./driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] DEVICE FIRMWARE_FILE
-	
+	./driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] [-new_scroll] DEVICE FIRMWARE_FILE
+
 DEVICE is the I2C bus where the driver chip is installed (in the case of the Scenio 1207 tablet, it is /dev/i2c-1).
 
 FIRMWARE_FILE is the file with the firmware, in the format explained before. This firmware is ussually specific for each tablet. In the case of the Scenio 1207 tablet, it is located in the folder */system/etc*.
@@ -44,6 +44,8 @@ FIRMWARE_FILE is the file with the firmware, in the format explained before. Thi
 **-gpio** allows to specify the path to the GPIO device that enables or disables the chip. By default, it presumes it is */sys/devices/virtual/misc/sun4i-gpio/pin/pb3*. In order to make this work, it a must to have the GPIO support in the kernel and to enable that pin as an **OUTPUT** gpio.
 
 **-invert_x** and **-invert_y** allows to invert the horizontal or vertical coordinates, in case that, when you touch the left part of the screen, the cursor moves to the right, and so on.
+
+**-new_scroll** allows to use a single finger to do scrolling.
 
 In the case of the sun4i SoCs, for example, to know which pin correspond to the enable/disable option of the chip, you need to check the .FEX configuration file and find the *ctp_wakeup* pin in the *ctp* option part (where the touch screen is defined) and create a GPIO entry at the end of the file with:
 
