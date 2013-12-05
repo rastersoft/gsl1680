@@ -571,7 +571,7 @@ void read_coords(struct i2c_client *cliente) {
 	case RS_two_B:
 		if (touches==2) {
 			int d;
-			if (cliente->new_scroll) {
+			if (!cliente->new_scroll) {
 				d=(old_x-xm)/X_THRESHOLD;
 				if (d!=0) {
 					cstatus=RS_two_B;
