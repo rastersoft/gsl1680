@@ -26,8 +26,8 @@ case "$1" in
     do_stop
     ;;
   restart)
-  	do_stop
-  	do_start
+    do_stop
+    do_start
   	;;
   *)
     echo "Usage: service gslx680 {start|stop}"
