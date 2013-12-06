@@ -441,6 +441,7 @@ void read_coords(struct i2c_client *cliente) {
 		if (touches==1) {
 			old_x=x1;
 			old_y=y1;
+			move_to(cliente,old_x,old_y);
 			cstatus=RS_one_A;
 			return;
 		}
