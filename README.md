@@ -1,11 +1,13 @@
 gsl1680
 =======
 
-Version 5
+Version 7
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
 This driver also uses the multi-touch capabilities of the chip to emulate horizontal and vertical scrolling (by doing it with two fingers by default, or with a single finger with **-new_scroll** enabled), zoom in/zoom out (pinching with two fingers), drag and drop (just touching and moving in default mode, or keeping the touch during one second to start DnD mode with **-new_scroll** enabled) and right-click (touch with finger 1; without releasing finger 1, tap with finger 2; now each new tap with finger 2 will be a right click in the coordinates in finger 1). Finally, when touching with three fingers will emulate Ctrl+COMPOSE (also known as MENU), which allows to show the on-screen keyboard in TabletWM.
+
+Version 7 has been changed to be launched from systemd. After running "make" and "sudo make install", run "sudo systemctl start gslx680.service" to make systemd launch it at startup.
 
 ## How to use the driver ##
 

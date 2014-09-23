@@ -649,7 +649,7 @@ int main(int argc, char **argv) {
 	struct uinput_user_dev uidev;
 	
 	if (argc<3) {
-		printf("Version 4\n");
+		printf("Version 7\n");
 		printf("Format: driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] DEVICE FW_FILE\n\n");
 		printf("-res XxY: specifies that the screen resolution is X width and Y height (default: 800x480)\n");
 		printf("-gpio PATH: sets the path to the GPIO device that enables and disables the touch chip\n");

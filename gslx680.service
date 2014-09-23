@@ -1,0 +1,10 @@
+[Unit]
+Description=GSLx680 user-space driver launcher for systemd
+
+[Service]
+Type=simple
+ExecStart=/bin/gslx680 -new_scroll /dev/i2c-1 /etc/gslx680/firmware.cfg
+ExecStop=killall gslx680
+
+[Install]
+WantedBy=multi-user.target
