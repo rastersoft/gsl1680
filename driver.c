@@ -73,15 +73,15 @@ static int gsl_ts_write(struct i2c_client *client, u8 addr, u8 *pdata, int datal
 		printf("%s too big datalen = %d!\n", __func__, datalen);
 		return -1;
 	}
-	
+
 	tmp_buf[0] = addr;
 	bytelen=1;
-	
+
 	if (datalen != 0 && pdata != NULL) {
 		memcpy(tmp_buf+1, pdata, datalen);
 		bytelen += datalen;
 	}
-	
+
 	ret = write(client->adapter, tmp_buf, bytelen);
 
 	return ret;
@@ -100,14 +100,14 @@ static int gsl_ts_read(struct i2c_client *client, u8 addr, u8 *pdata, unsigned i
 		printf("%s set data address fail!\n", __func__);
 		return ret;
 	}
-	
+
 	return read(client->adapter, pdata, datalen);
 }
 
 static void reset_chip(struct i2c_client *client) {
 
 	u8 buf[1];
-	
+
 	buf[0]=0x88;
 	gsl_ts_write(client, GSL_STATUS_REG, buf, 1);
 	usleep(10000);
@@ -140,9 +140,9 @@ static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 	printf("=============gsl_load_fw start==============\n");
 
 	FILE *fichero;
-	
+
 	fichero=fopen(fw_file,"r");
-	
+
 	if (fichero==NULL) {
 		printf("Can't open firmware file %s\n",fw_file);
 		return;
@@ -235,7 +235,7 @@ void move_to(struct i2c_client *cliente,int x, int y) {
 	ev.code = ABS_X;
 	ev.value = x;
 	write(cliente->ufile, &ev, sizeof(struct input_event));
-		
+
 	memset(&ev, 0, sizeof(struct input_event));
 	ev.type = EV_ABS;
 	ev.code = ABS_Y;
@@ -647,9 +647,9 @@ int main(int argc, char **argv) {
 	struct i2c_client cliente;
 	int retval;
 	struct uinput_user_dev uidev;
-	
+
 	if (argc<3) {
-		printf("Version 7\n");
+		printf("Version 8\n");
 		printf("Format: driver [-res XxY] [-gpio PATH] [-invert_x] [-invert_y] DEVICE FW_FILE\n\n");
 		printf("-res XxY: specifies that the screen resolution is X width and Y height (default: 800x480)\n");
 		printf("-gpio PATH: sets the path to the GPIO device that enables and disables the touch chip\n");

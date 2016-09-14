@@ -1,5 +1,6 @@
 ## HISTORY OF VERSIONS ##
-
+* Version 8.0 (2016-09-15)
+   * Fixed systemd script
 * Version 7.0 (2014-09-24)
    * Updated to allow systemd
 * Version 6.0 (2013-12-06)
