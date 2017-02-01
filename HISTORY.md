@@ -1,4 +1,6 @@
 ## HISTORY OF VERSIONS ##
+* Version 9.0 (2017-02-01)
+   * Allows to swap the axis (useful for rotating the screen)
 * Version 8.0 (2016-09-15)
    * Fixed systemd script
 * Version 7.0 (2014-09-24)
@@ -17,4 +19,3 @@
    * Added support for showing the on-screen keyboard in TabletWM by touching with three fingers
 * Version 1.0 (2013-08-27)
    * First public version
-

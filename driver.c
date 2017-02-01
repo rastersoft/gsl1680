@@ -24,6 +24,7 @@ struct i2c_client {
 	char *gpio;
 	char invert_x;
 	char invert_y;
+	char swap_axis;
 	int resx;
 	int resy;
 	char new_scroll;
@@ -193,7 +194,7 @@ static void gsl_load_fw(struct i2c_client *client,char *fw_file) {
 static void startup_chip(struct i2c_client *client) {
 	u8 tmp = 0x00;
 	gsl_ts_write(client, GSL_STATUS_REG, &tmp, 1);
-	usleep(10000);	
+	usleep(10000);
 }
 
 static void init_chip(struct i2c_client *client,char *fw_file) {
@@ -211,7 +212,7 @@ static void init_chip(struct i2c_client *client,char *fw_file) {
 	gslX680_shutdown_high(client);
 	usleep(20000);
 	reset_chip(client);
-	startup_chip(client);	
+	startup_chip(client);
 }
 
 void do_sync(struct i2c_client *cliente,int file) {
@@ -410,6 +411,11 @@ void read_coords(struct i2c_client *cliente) {
 		}
 		if (cliente->invert_y) {
 			y1=cliente->resy-y1-1;
+		}
+		if (cliente->swap_axis) {
+			int tmp = x1;
+			x1 = y1;
+			y1 = tmp;
 		}
 		if (touches>1) {
 			retval=gsl_ts_read(cliente,0x88,buffer,4);
@@ -655,6 +661,7 @@ int main(int argc, char **argv) {
 		printf("-gpio PATH: sets the path to the GPIO device that enables and disables the touch chip\n");
 		printf("-invert_x: inverts the X coordinates\n");
 		printf("-invert_y: inverts the Y coordinates\n");
+		printf("-swap_axis: X and Y axis are swapped (done after inverting the axis)\n");
 		printf("-new_scroll: do scroll with a single finger\n");
 		printf("DEVICE: path to the I2C device where the GSLx680 chip is connected\n");
 		printf("FW_FILE: path to the firmware file for the GSLx680 chip\n");
@@ -666,6 +673,7 @@ int main(int argc, char **argv) {
 	char *option;
 	cliente.invert_x=0;
 	cliente.invert_y=0;
+	cliente.swap_axis=0;
 	cliente.gpio="/sys/devices/virtual/misc/sun4i-gpio/pin/pb3";
 	cliente.resx=SCREEN_MAX_X;
 	cliente.resy=SCREEN_MAX_Y;
@@ -698,6 +706,10 @@ int main(int argc, char **argv) {
 			}
 			if (!strcmp(option,"-new_scroll")) {
 				cliente.new_scroll=1;
+				continue;
+			}
+			if (!strcmp(option,"-swap_axis")) {
+				cliente.swap_axis=1;
 				continue;
 			}
 			if (loop==argc) {
@@ -743,7 +755,7 @@ int main(int argc, char **argv) {
 	}
 
 	printf("Connecting to device %s, firmware %s\n",adapter,firmware);
-	
+
 	cliente.adapter=open(adapter,O_RDWR);
 	if (cliente.adapter<0) {
 		printf("Can't open device %s\n",adapter);
@@ -774,8 +786,8 @@ int main(int argc, char **argv) {
 	retval = ioctl(cliente.ufile, UI_SET_EVBIT, EV_ABS);
 	retval = ioctl(cliente.ufile, UI_SET_ABSBIT, ABS_X);
 	retval = ioctl(cliente.ufile, UI_SET_ABSBIT, ABS_Y);
-	
-	
+
+
 	memset(&uidev, 0, sizeof(uidev));
 
 	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "gsl1680-uinput");
@@ -788,7 +800,7 @@ int main(int argc, char **argv) {
 	uidev.absmin[ABS_Y] = 0;
 	uidev.absmax[ABS_Y] = cliente.resy-1;
 	retval = write(cliente.ufile, &uidev, sizeof(uidev));
-	
+
 	retval = ioctl(cliente.ufile, UI_DEV_CREATE);
 	retval = ioctl(cliente.ufile, UI_SET_PROPBIT,INPUT_PROP_DIRECT);
 	retval = ioctl(cliente.ufile, UI_SET_PROPBIT,INPUT_PROP_POINTER);
@@ -820,7 +832,7 @@ int main(int argc, char **argv) {
 	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_Y);
 	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_WHEEL);
 	retval = ioctl(cliente.mfile, UI_SET_RELBIT, REL_HWHEEL);
-	
+
 	memset(&uidev, 0, sizeof(uidev));
 	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "gsl1680-2-uinput");
 	uidev.id.bustype = BUS_I2C;
@@ -828,9 +840,9 @@ int main(int argc, char **argv) {
 	uidev.id.product = 0x2;
 	uidev.id.version = 1;
 	retval = write(cliente.mfile, &uidev, sizeof(uidev));
-	
+
 	retval = ioctl(cliente.mfile, UI_SET_PROPBIT,INPUT_PROP_POINTER);
-	
+
 	retval = ioctl(cliente.mfile, UI_DEV_CREATE);
 
 	init_chip(&cliente,firmware);
@@ -840,4 +852,3 @@ int main(int argc, char **argv) {
 		usleep(20000); // do 50 reads per second
 	}
 }
-

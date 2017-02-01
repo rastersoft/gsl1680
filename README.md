@@ -1,7 +1,7 @@
 gsl1680
 =======
 
-Version 7
+Version 9
 
 An user-space driver for Silead's GSL1680 capacitive touch screen driver chip.
 
@@ -46,6 +46,8 @@ FIRMWARE_FILE is the file with the firmware, in the format explained before. Thi
 **-gpio** allows to specify the path to the GPIO device that enables or disables the chip. By default, it presumes it is */sys/devices/virtual/misc/sun4i-gpio/pin/pb3*. In order to make this work, it a must to have the GPIO support in the kernel and to enable that pin as an **OUTPUT** gpio.
 
 **-invert_x** and **-invert_y** allows to invert the horizontal or vertical coordinates, in case that, when you touch the left part of the screen, the cursor moves to the right, and so on.
+
+**-swap_axis** swaps the X and Y axis, allowing to use the driver with rotated screens.
 
 **-new_scroll** allows to use a single finger to do scrolling.
 
