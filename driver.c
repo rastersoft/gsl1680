@@ -825,9 +825,14 @@ int main(int argc, char **argv) {
 	uidev.id.product = 0x1;
 	uidev.id.version = 1;
 	uidev.absmin[ABS_X] = 0;
-	uidev.absmax[ABS_X] = cliente.resx-1;
 	uidev.absmin[ABS_Y] = 0;
-	uidev.absmax[ABS_Y] = cliente.resy-1;
+	if (cliente.swap_axis) {
+		uidev.absmax[ABS_X] = cliente.resy-1;
+		uidev.absmax[ABS_Y] = cliente.resx-1;
+	} else {
+		uidev.absmax[ABS_X] = cliente.resx-1;
+		uidev.absmax[ABS_Y] = cliente.resy-1;
+	}
 	retval = write(cliente.ufile, &uidev, sizeof(uidev));
 
 	retval = ioctl(cliente.ufile, UI_DEV_CREATE);
