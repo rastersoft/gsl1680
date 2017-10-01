@@ -324,13 +324,17 @@ void zoom(struct i2c_client *cliente,int value) {
 	do_sync(cliente,cliente->mfile);
 }
 
-void menu_ctrl(struct i2c_client *cliente) {
+void menu_ctrl(struct i2c_client *cliente, char do_resize) {
 
 	struct input_event ev;
 
 	memset(&ev, 0, sizeof(struct input_event));
 	ev.type = EV_KEY;
-	ev.code = KEY_LEFTCTRL;
+	if (do_resize) {
+		ev.code = KEY_LEFTSHIFT;
+	} else {
+		ev.code = KEY_LEFTCTRL;
+	}
 	ev.value = 1;
 	write(cliente->mfile, &ev, sizeof(struct input_event));
 	do_sync(cliente,cliente->mfile);
@@ -351,7 +355,11 @@ void menu_ctrl(struct i2c_client *cliente) {
 
 	memset(&ev, 0, sizeof(struct input_event));
 	ev.type = EV_KEY;
-	ev.code = KEY_LEFTCTRL;
+	if (do_resize) {
+		ev.code = KEY_LEFTSHIFT;
+	} else {
+		ev.code = KEY_LEFTCTRL;
+	}
 	ev.value = 0;
 	write(cliente->mfile, &ev, sizeof(struct input_event));
 	do_sync(cliente,cliente->mfile);
@@ -388,7 +396,7 @@ void read_coords(struct i2c_client *cliente) {
 		return;
 	}
 	gettimeofday(&now,NULL);
-	u8 touches=buffer[0]<=3 ? buffer[0] : 3;
+	u8 touches=buffer[0]<=4 ? buffer[0] : 4;
 
 	if (touches==0) {
 		old_time = now.tv_sec;
@@ -460,15 +468,29 @@ void read_coords(struct i2c_client *cliente) {
 			return;
 		}
 		if (touches==3) {
+			printf("3 touches (1)\n");
 			cstatus=RS_three_A;
-			menu_ctrl(cliente);
+			menu_ctrl(cliente, 1);
+			return;
+		}
+		if (touches==4) {
+			printf("4 touches (1)\n");
+			cstatus=RS_three_A;
+			menu_ctrl(cliente, 0);
 			return;
 		}
 	break;
 	case RS_one_A:
 		if (touches==3) {
+			printf("3 touches (2)\n");
 			cstatus=RS_three_A;
-			menu_ctrl(cliente);
+			menu_ctrl(cliente, 1);
+			return;
+		}
+		if (touches==4) {
+			printf("4 touches (2)\n");
+			cstatus=RS_three_A;
+			menu_ctrl(cliente, 0);
 			return;
 		}
 		if (touches==2) {
@@ -564,8 +586,15 @@ void read_coords(struct i2c_client *cliente) {
 	break;
 	case RS_two_A:
 		if (touches==3) {
+			printf("3 touches (3)\n");
 			cstatus=RS_three_A;
-			menu_ctrl(cliente);
+			menu_ctrl(cliente, 1);
+			return;
+		}
+		if (touches==4) {
+			printf("4 touches (3)\n");
+			cstatus=RS_three_A;
+			menu_ctrl(cliente, 0);
 			return;
 		}
 		if (touches==1) {
@@ -825,6 +854,7 @@ int main(int argc, char **argv) {
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_LEFT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, BTN_RIGHT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_LEFTCTRL);
+	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_LEFTSHIFT);
 	retval = ioctl(cliente.mfile, UI_SET_KEYBIT, KEY_COMPOSE);
 
 	retval = ioctl(cliente.mfile, UI_SET_EVBIT, EV_REL);

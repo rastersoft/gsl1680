@@ -1,4 +1,6 @@
 ## HISTORY OF VERSIONS ##
+* Version 10.0 (2017-10-01)
+   * Now touching with three fingers return shift+menu, and with four fingers, ctrl+menu
 * Version 9.0 (2017-02-01)
    * Allows to swap the axis (useful for rotating the screen)
 * Version 8.0 (2016-09-15)
