@@ -68,7 +68,8 @@ There's a page with technical info about this chip at http://linux-sunxi.org/GSL
 
 ## Contacting the author ##
 
-Sergio Costas
-Raster Software Vigo
-http://www.rastersoft.com
-raster@rastersoft.com
+Sergio Costas Rodriguez  
+rastersoft@gmail.com  
+http://www.rastersoft.com  
+https://gitlab.com/rastersoft/gsl1680
+
